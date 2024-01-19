@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -31,6 +31,33 @@ async function run() {
         const shopsCollection = client.db("bims24Ltd").collection("shops");
 
         // user related api 
+        const USER_PAGE_SIZE = 10;
+        app.get('/users', async (req, res) => {
+            const page = parseInt(req.query.page) || 1;
+            const skip = (page - 1) * USER_PAGE_SIZE;
+
+            const [result, totalUser] = await Promise.all([
+                usersCollection.find().sort({ id: 1 }).skip(skip).limit(USER_PAGE_SIZE).toArray(),
+                usersCollection.countDocuments() // Calculate the total count
+            ]);
+
+
+            res.send({ 'users': result, 'countUser': totalUser });
+
+        });
+        app.get('/users/role/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const projection = { role: 1 };
+            // console.log(projection)
+
+            const user = await usersCollection.findOne(query, projection);
+            if (user && user.role) {
+                res.send({ role: user.role });
+            } else {
+                res.send([]);
+            }
+        })
         app.post('/users', async (req, res) => {
             const user = req.body;
             // console.log(user)
@@ -43,6 +70,28 @@ async function run() {
             res.send(result);
         });
         // shop related api 
+        const PAGE_SIZE = 10;
+
+        app.get('/shops', async (req, res) => {
+            const page = parseInt(req.query.page) || 1;
+            const skip = (page - 1) * PAGE_SIZE;
+
+            const [result, totalCount] = await Promise.all([
+                shopsCollection.find({ status: 'Approve' }).sort({ selectedDistrict: 1 }).skip(skip).limit(PAGE_SIZE).toArray(),
+                shopsCollection.countDocuments({ status: 'Approve' }) // Calculate the total count
+            ]);
+
+
+            res.send({ 'shops': result, 'countShop': totalCount });
+
+        });
+        app.get('/shops/request', async (req, res) => {
+
+            const result = await shopsCollection.find({ status: 'Pending' }).toArray();
+            res.send(result);
+
+        });
+
         app.get('/shops/:townName', async (req, res) => {
 
             const searchTown = req.params.townName;
@@ -62,6 +111,26 @@ async function run() {
             const result = await shopsCollection.insertOne(shop);
             res.send(result);
         });
+
+        app.patch('/shop/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    status: 'Approve'
+                }
+            }
+            const result = await shopsCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        })
+
+        app.delete('/shops/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await shopsCollection.deleteOne(query);
+            res.send(result)
+        })
+
         // await client.db("admin").command({ ping: 1 });
         // console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
