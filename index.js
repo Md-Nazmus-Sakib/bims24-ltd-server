@@ -95,9 +95,10 @@ async function run() {
         app.get('/shops/:townName', async (req, res) => {
 
             const searchTown = req.params.townName;
-
-            const query = { selectedTown: { $regex: new RegExp(searchTown, 'i') } };
-            const result = await shopsCollection.find(query).toArray();
+            const result = await shopsCollection.find({
+                status: 'Approve',
+                selectedTown: { $regex: new RegExp(searchTown, 'i') }
+            }).toArray();
             res.send(result);
         });
 
