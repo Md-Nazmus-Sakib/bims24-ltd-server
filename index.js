@@ -47,16 +47,21 @@ async function run() {
         });
         app.get('/users/role/:email', async (req, res) => {
             const email = req.params.email;
-            const query = { email: email };
-            const projection = { role: 1 };
-            // console.log(projection)
+            // const query = { email: email };
+            // const projection = { role: 1 };
+            // // console.log(projection)
 
-            const user = await usersCollection.findOne(query, projection);
-            if (user && user.role) {
-                res.send({ role: user.role });
-            } else {
-                res.send([]);
-            }
+            // const user = await usersCollection.findOne(query, projection);
+            // if (user && user.role) {
+            //     res.send({ role: user.role });
+            // } else {
+            //     res.send([]);
+            // }
+
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result = { admin: user?.role === "Admin" };
+            res.send(result)
         })
         app.post('/users', async (req, res) => {
             const user = req.body;
